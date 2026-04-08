@@ -1,31 +1,44 @@
+```
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+
+# Dependencies
+vendor/
+composer.lock
+
+# Logs and temp files
 *.log
-*.zip
-*.rar
-*.sql
-*.md
-.DS_Store
+*.tmp
+*.swp
+
+# Environment
 .env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
-/.fleet
-/.idea
-/.nova
-/.phpunit.cache
-/.vscode
-/.zed
-/auth.json
-/node_modules
-/public/build
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
-/vendor
-_ide_helper.php
-Homestead.json
-Homestead.yaml
+.env.local
+*.env.*
+
+# Editors
+.vscode/
+.idea/
+
+# Laravel/Lumen specific
+bootstrap/cache/
+storage/logs/
+storage/framework/
+public/storage/
+
+# Database
+*.sqlite
+*.db
+
+# Coverage reports
+coverage/
+htmlcov/
+*.coverage
+
+# OS generated files
+.DS_Store
 Thumbs.db
-*.zip
-*.md
+```
