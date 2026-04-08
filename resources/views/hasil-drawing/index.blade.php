@@ -10,6 +10,12 @@
             <div class="page-title">Drawing Lomba</div>
             <div class="page-sub">Penentuan Babak Regu untuk Setiap Sekolah</div>
         </div>
+        <div class="page-actions">
+            <button class="btn btn-primary" id="btn-view-tree" onclick="viewTree()" style="display:none;">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 16 16"><path d="M3 8l3 3L13 4"/></svg>
+                Lihat Tree Lomba
+            </button>
+        </div>
     </div>
 
     {{-- ── Alert ────────────────────────────────── --}}
@@ -64,6 +70,21 @@
             </div>
         </div>
     </div>
+
+    {{-- ── Tree View Section (hidden by default) ───── --}}
+    <div id="tree-section" style="display:none; margin-top:1.5rem;">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Tree Pertandingan</div>
+            </div>
+            <div class="card-body" id="tree-container">
+                <!-- Tree will be rendered here -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeTree()">Tutup</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 {{-- Modal info babak regu --}}
@@ -88,11 +109,13 @@ let sekolahList = [];
 let babakRegus = [];
 let existingBabakReguIds = [];
 let selections = {}; // { sekolah_id: lomba_babak_regu_id }
+let drawingResults = []; // Store drawing results for tree view
 
 const alertBox = document.getElementById('alert-box');
 const drawingSection = document.getElementById('drawing-section');
 const drawingTableBody = document.getElementById('drawing-table-body');
 const btnSave = document.getElementById('btn-save');
+const btnViewTree = document.getElementById('btn-view-tree');
 const fillStatus = document.getElementById('fill-status');
 
 function showAlert(message, type = 'error') {
@@ -129,15 +152,32 @@ async function loadLombaData() {
 
         // Initialize selections from existing drawings
         selections = {};
+        drawingResults = [];
         sekolahList.forEach(s => {
             if (s.existing_drawing) {
                 selections[s.id] = s.existing_drawing.lomba_babak_regu_id;
+                // Build drawing results for tree view
+                const babakRegu = babakRegus.find(b => b.id === s.existing_drawing.lomba_babak_regu_id);
+                if (babakRegu) {
+                    drawingResults.push({
+                        sekolah_nama: s.nama_sekolah,
+                        babak_regu: babakRegu.kode,
+                        nomor: babakRegu.nomor,
+                    });
+                }
             }
         });
+        
+        // Sort drawing results by nomor
+        drawingResults.sort((a, b) => a.nomor - b.nomor);
 
         renderLombaInfo();
         renderTable();
         drawingSection.style.display = 'block';
+        
+        // Show/hide tree button based on existing drawings
+        const hasDrawings = Object.keys(selections).length > 0;
+        btnViewTree.style.display = hasDrawings ? 'inline-flex' : 'none';
     } catch (error) {
         console.error(error);
         showAlert('Terjadi kesalahan saat memuat data lomba');
@@ -177,7 +217,7 @@ function renderTable() {
         // Build options for select, exclude already used babak regu (except current selection)
         let optionsHtml = '<option value="">-- Pilih --</option>';
         const availableBabakRegus = babakRegus.filter(b => 
-            !existingBabakReguIds.includes(b.id) || b.id === selectedBabakReguId
+            !Object.values(selections).includes(b.id) || b.id === selectedBabakReguId
         );
         
         availableBabakRegus.forEach(b => {
@@ -281,7 +321,17 @@ async function saveDrawing() {
 
         if (result.success) {
             showAlert(result.message, 'success');
-            // Reload to show updated data
+            // Store drawing results for tree view
+            drawingResults = sekolahList.map(s => {
+                const babakRegu = babakRegus.find(b => b.id === selections[s.id]);
+                return {
+                    sekolah_nama: s.nama_sekolah,
+                    babak_regu: babakRegu ? babakRegu.kode : '',
+                    nomor: babakRegu ? babakRegu.nomor : 0,
+                };
+            }).sort((a, b) => a.nomor - b.nomor);
+            
+            // Reload to show updated data and enable tree button
             setTimeout(() => loadLombaData(), 1500);
         } else {
             showAlert(result.message || 'Gagal menyimpan hasil drawing', 'error');
@@ -300,6 +350,63 @@ function closeBabakReguModal(event) {
     if (!event || event.target === document.getElementById('babak-regu-modal')) {
         document.getElementById('babak-regu-modal').classList.remove('open');
     }
+}
+
+// Tree view functions
+function viewTree() {
+    const treeSection = document.getElementById('tree-section');
+    const treeContainer = document.getElementById('tree-container');
+    
+    if (drawingResults.length === 0) {
+        showAlert('Belum ada data drawing untuk ditampilkan dalam tree.', 'error');
+        return;
+    }
+    
+    // Group by nomor (1, 2, 3 for Penyisihan 1, 2, 3)
+    const groups = {};
+    drawingResults.forEach(r => {
+        if (!groups[r.nomor]) {
+            groups[r.nomor] = [];
+        }
+        groups[r.nomor].push(r);
+    });
+    
+    let html = '<div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center;">';
+    
+    // Sort by nomor and render each group
+    const sortedNomors = Object.keys(groups).sort((a, b) => parseInt(a) - parseInt(b));
+    
+    sortedNomors.forEach(nomor => {
+        const groupName = `Lomba Penyisihan ${nomor}`;
+        const items = groups[nomor];
+        
+        html += `<div class="stat-card" style="min-width:280px;">`;
+        html += `<div class="stat-label" style="margin-bottom:12px;text-align:center;font-size:13px;">${groupName}</div>`;
+        html += `<div style="display:flex;flex-direction:column;gap:8px;">`;
+        
+        items.forEach((item, idx) => {
+            html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--blue-50);border-radius:6px;border:1px solid var(--blue-100);">`;
+            html += `<span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:var(--blue-600);color:#fff;border-radius:50%;font-size:11px;font-weight:700;">${idx + 1}</span>`;
+            html += `<div style="flex:1;">`;
+            html += `<div style="font-size:12px;font-weight:600;color:var(--blue-800);">${item.sekolah_nama}</div>`;
+            html += `<div style="font-size:10px;color:var(--text-3);">Regu ${item.babak_regu}</div>`;
+            html += `</div>`;
+            html += `</div>`;
+        });
+        
+        html += `</div></div>`;
+    });
+    
+    html += '</div>';
+    
+    treeContainer.innerHTML = html;
+    treeSection.style.display = 'block';
+    drawingSection.style.display = 'none';
+}
+
+function closeTree() {
+    document.getElementById('tree-section').style.display = 'none';
+    document.getElementById('drawing-section').style.display = 'block';
 }
 </script>
 @endsection
