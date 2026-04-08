@@ -223,7 +223,7 @@ tbody tr:hover td{background:var(--blue-50);}
         </div>
     </div>
     <div class="topnav-menu">
-        <a href="{{ route('lomba-provinsi.index') }}" class="topnav-item active">Data Sekolah Partisipan</a>
+        <a href="{{ route('lomba-provinsi.index') }}" class="topnav-item active">Lomba Provinsi</a>
         <a href="{{ route('provinsi.index') }}" class="topnav-item">Master Provinsi</a>
         <a href="{{ route('settings.index') }}" class="topnav-item">Pengaturan</a>
     </div>
@@ -234,7 +234,7 @@ tbody tr:hover td{background:var(--blue-50);}
     {{-- ── Page Header ──────────────────────────── --}}
     <div class="page-header">
         <div>
-            <div class="page-title">Master Data Sekolah Partisipan</div>
+            <div class="page-title">Master Lomba Provinsi</div>
             <div class="page-sub">{{ $namaKegiatan }} · Tahun Aktif: <strong>{{ $tahunDefault }}</strong></div>
         </div>
         <div class="page-actions">
@@ -244,7 +244,7 @@ tbody tr:hover td{background:var(--blue-50);}
             </button>
             <button class="btn btn-primary" onclick="openAdd()">
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>
-                Tambah Data Sekolah Partisipan
+                Tambah Provinsi
             </button>
         </div>
     </div>
@@ -360,7 +360,7 @@ tbody tr:hover td{background:var(--blue-50);}
                     @empty
                     <tr id="empty-row">
                         <td colspan="7" style="text-align:center;padding:3rem;color:var(--text-3)">
-                            Belum ada data sekolah partisipan.<br>Klik <strong>Tambah Provinsi</strong> atau <strong>Import Excel</strong> untuk memulai.
+                            Belum ada data lomba provinsi.<br>Klik <strong>Tambah Provinsi</strong> atau <strong>Import Excel</strong> untuk memulai.
                         </td>
                     </tr>
                     @endforelse
