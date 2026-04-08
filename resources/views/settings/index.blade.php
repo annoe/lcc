@@ -63,11 +63,13 @@
                 <label class="form-label">Nama Kegiatan Default</label>
                 <input class="form-ctrl" id="f-nama-default" type="text" maxlength="300"
                     value="{{ $settings['nama_kegiatan_default']?->value ?? '' }}"
-                    placeholder="Contoh: Lomba Cerdas Cermat MPR RI Tahun {{tahun}} Seleksi Provinsi, Provinsi {{provinsi}}">
+                    placeholder="Contoh: Lomba Cerdas Cermat MPR RI Tahun @{{tahun}} Seleksi Provinsi, Provinsi @{{provinsi}}">
                 <div class="form-hint">
                     Template nama kegiatan lengkap. Gunakan parameter:
-                    <span class="param-chip">{{"{{"}}tahun{{"}}"}}</span> untuk tahun aktif dan
-                    <span class="param-chip">{{"{{"}}provinsi{{"}}"}}</span> untuk nama provinsi.
+@verbatim
+                    <span class="param-chip">{{tahun"}}</span> untuk tahun aktif dan
+                    <span class="param-chip">{{provinsi}}</span> untuk nama provinsi.
+@endverbatim
                 </div>
                 <div class="field-error" id="err-nama-default"></div>
                 <div class="preview-badge" id="prev-nama-default" style="max-width:100%;margin-top:6px">
