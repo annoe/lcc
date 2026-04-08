@@ -266,6 +266,8 @@ input[type=checkbox]{accent-color:var(--blue-600);width:14px;height:14px;cursor:
            class="topnav-item {{ Request::routeIs('provinsi.*') ? 'active' : '' }}">Master Provinsi</a>
         <a href="{{ route('jenis-babak.index') }}"
            class="topnav-item {{ Request::routeIs('jenis-babak.*') ? 'active' : '' }}">Jenis Babak</a>
+        <a href="{{ route('lomba-babak-regu.index') }}"
+           class="topnav-item {{ Request::routeIs('lomba-babak-regu.*') ? 'active' : '' }}">Babak Regu</a>
         <a href="{{ route('settings.index') }}"
            class="topnav-item {{ Request::routeIs('settings.*') ? 'active' : '' }}">Pengaturan</a>
     </div>
