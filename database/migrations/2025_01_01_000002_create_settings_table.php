@@ -35,6 +35,14 @@ return new class extends Migration
                 'created_at'  => now(),
                 'updated_at'  => now(),
             ],
+            [
+                'key'         => 'nama_kegiatan_default',
+                'value'       => 'Lomba Cerdas Cermat MPR RI Tahun {{tahun}} Seleksi Provinsi, Provinsi {{provinsi}}',
+                'label'       => 'Nama Kegiatan Default',
+                'description' => 'Template nama kegiatan dengan parameter {{tahun}} dan {{provinsi}}.',
+                'created_at'  => now(),
+                'updated_at'  => now(),
+            ],
         ]);
     }
 

@@ -20,12 +20,14 @@ class SettingController extends Controller
     public function update(Request $request): JsonResponse
     {
         $request->validate([
-            'tahun_default' => ['required', 'digits:4', 'integer', 'min:2000', 'max:2099'],
-            'nama_kegiatan' => ['required', 'string', 'max:150'],
+            'tahun_default'        => ['required', 'digits:4', 'integer', 'min:2000', 'max:2099'],
+            'nama_kegiatan'        => ['required', 'string', 'max:150'],
+            'nama_kegiatan_default'=> ['required', 'string', 'max:300'],
         ]);
 
-        Setting::set('tahun_default', $request->input('tahun_default'));
-        Setting::set('nama_kegiatan', trim($request->input('nama_kegiatan')));
+        Setting::set('tahun_default',         $request->input('tahun_default'));
+        Setting::set('nama_kegiatan',         trim($request->input('nama_kegiatan')));
+        Setting::set('nama_kegiatan_default', trim($request->input('nama_kegiatan_default')));
 
         return response()->json([
             'success' => true,
