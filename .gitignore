@@ -7,7 +7,7 @@ __pycache__/
 
 # Dependencies
 vendor/
-composer.lock
+node_modules/
 
 # Logs and temp files
 *.log
@@ -17,28 +17,23 @@ composer.lock
 # Environment
 .env
 .env.local
-*.env.*
+.env.*
 
 # Editors
 .vscode/
 .idea/
 
-# Laravel/Lumen specific
-bootstrap/cache/
-storage/logs/
-storage/framework/
-public/storage/
-
-# Database
-*.sqlite
-*.db
-
 # Coverage reports
 coverage/
 htmlcov/
-*.coverage
+.coverage
 
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Build directories
+dist/
+build/
+target/
 ```

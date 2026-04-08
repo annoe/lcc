@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\JenisBabakController;
 use App\Http\Controllers\LombaProvinsiController;
 use App\Http\Controllers\ProvinsiController;
 use App\Http\Controllers\SettingController;
@@ -11,6 +12,14 @@ Route::get('/', fn () => redirect()->route('lomba-provinsi.index'));
 Route::prefix('pengaturan')->name('settings.')->group(function () {
     Route::get('/',  [SettingController::class, 'index'])->name('index');
     Route::post('/', [SettingController::class, 'update'])->name('update');
+});
+
+// ── Jenis Babak ────────────────────────────────────────────────────────────
+Route::prefix('jenis-babak')->name('jenis-babak.')->group(function () {
+    Route::get('/',              [JenisBabakController::class, 'index'])->name('index');
+    Route::post('/',             [JenisBabakController::class, 'store'])->name('store');
+    Route::put('/{jenisBabak}',  [JenisBabakController::class, 'update'])->name('update');
+    Route::delete('/{jenisBabak}', [JenisBabakController::class, 'destroy'])->name('destroy');
 });
 
 // ── Master Data Provinsi ──────────────────────────────────────────────────
