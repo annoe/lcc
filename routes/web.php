@@ -54,3 +54,10 @@ Route::prefix('master/lomba-provinsi')->name('lomba-provinsi.')->group(function 
     Route::post('/import/preview',    [LombaProvinsiController::class, 'importPreview'])->name('import.preview');
     Route::post('/import/save',       [LombaProvinsiController::class, 'importSave'])->name('import.save');
 });
+
+// ── Hasil Drawing ───────────────────────────────────────────────────────
+Route::prefix('hasil-drawing')->name('hasil-drawing.')->group(function () {
+    Route::get('/', [App\Http\Controllers\HasilDrawingController::class, 'index'])->name('index');
+    Route::get('/api/lomba/{provinsiId}', [App\Http\Controllers\HasilDrawingController::class, 'getLombaByProvinsi']);
+    Route::post('/', [App\Http\Controllers\HasilDrawingController::class, 'store']);
+});
