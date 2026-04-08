@@ -17,6 +17,9 @@ class LombaProvinsi extends Model
         'id',
         'tahun',
         'provinsi_id',
+        'nama_kegiatan',
+        'tempat_kegiatan',
+        'tanggal_kegiatan',
     ];
 
     // ── Relations ────────────────────────────────────────────

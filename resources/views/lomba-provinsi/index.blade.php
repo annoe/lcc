@@ -104,6 +104,19 @@
                     <tr id="expand-{{ $lomba->id }}" class="expand-row" style="display:none">
                         <td colspan="7">
                             <div class="expand-inner">
+                                @if($lomba->nama_kegiatan || $lomba->tempat_kegiatan || $lomba->tanggal_kegiatan)
+                                <div style="display:flex;flex-wrap:wrap;gap:12px 24px;margin-bottom:10px;padding:8px 10px;background:var(--blue-50);border:1px solid var(--blue-100);border-radius:var(--radius);font-size:12px">
+                                    @if($lomba->nama_kegiatan)
+                                    <div><span style="color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.3px;font-size:10px">Nama Kegiatan</span><div style="color:var(--text-1);font-weight:500;margin-top:2px">{{ $lomba->nama_kegiatan }}</div></div>
+                                    @endif
+                                    @if($lomba->tempat_kegiatan)
+                                    <div><span style="color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.3px;font-size:10px">Tempat</span><div style="color:var(--text-1);margin-top:2px">{{ $lomba->tempat_kegiatan }}</div></div>
+                                    @endif
+                                    @if($lomba->tanggal_kegiatan)
+                                    <div><span style="color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.3px;font-size:10px">Tanggal</span><div style="color:var(--text-1);margin-top:2px">{{ \Carbon\Carbon::parse($lomba->tanggal_kegiatan)->translatedFormat('d F Y') }}</div></div>
+                                    @endif
+                                </div>
+                                @endif
                                 <table class="sekolah-mini-table">
                                     <thead>
                                         <tr>
@@ -166,10 +179,25 @@
                 <select class="form-ctrl-full" id="f-provinsi">
                     <option value="">— Pilih Provinsi —</option>
                     @foreach($semuaProvinsi as $p)
-                    <option value="{{ $p->id }}" data-kode="{{ $p->kode }}">{{ $p->kode }} · {{ $p->nama }}</option>
+                    <option value="{{ $p->id }}" data-kode="{{ $p->kode }}" data-nama="{{ $p->nama }}">{{ $p->kode }} · {{ $p->nama }}</option>
                     @endforeach
                 </select>
                 <div class="field-error" id="err-provinsi"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Nama Kegiatan</label>
+                <input class="form-ctrl-full" id="f-nama-kegiatan" readonly placeholder="Otomatis dari pengaturan…">
+                <div class="form-hint">Diisi otomatis sesuai template pengaturan. Pilih provinsi terlebih dahulu.</div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Tempat Kegiatan</label>
+                <input class="form-ctrl-full" id="f-tempat" placeholder="Contoh: Hotel Grand Inna, Banda Aceh" maxlength="250">
+                <div class="field-error" id="err-tempat"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Tanggal Kegiatan</label>
+                <input class="form-ctrl-full" id="f-tanggal" type="date">
+                <div class="field-error" id="err-tanggal"></div>
             </div>
             <div class="sekolah-section">
                 <div class="sekolah-section-title">Data 9 Sekolah Peserta</div>
@@ -255,7 +283,7 @@
             <div id="panel-1" class="step-panel active">
                 <div class="modal-body">
                     <div style="font-size:12px;color:var(--text-2);margin-bottom:14px;line-height:1.8;background:var(--blue-50);border:1px solid var(--blue-100);border-radius:var(--radius);padding:10px 14px">
-                        <strong>Format file:</strong> .xlsx / .xls &nbsp;·&nbsp; <strong>Isi:</strong> kode provinsi di sel B3, data 9 sekolah mulai baris 10 &nbsp;·&nbsp; <strong>Maks.:</strong> 5 MB
+                        <strong>Format file:</strong> .xlsx / .xls &nbsp;·&nbsp; <strong>Isi:</strong> kode provinsi di sel B3, tempat kegiatan di B4, tanggal di B5 (yyyy-mm-dd), data 9 sekolah mulai baris 12 &nbsp;·&nbsp; <strong>Maks.:</strong> 5 MB
                     </div>
                     <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()" ondragover="event.preventDefault();this.classList.add('drag-over')" ondragleave="this.classList.remove('drag-over')" ondrop="handleDrop(event)">
                         <div class="drop-zone-icon">📊</div>
@@ -369,6 +397,8 @@
 @push('scripts')
 <script>
 const CSRF   = document.querySelector('meta[name="csrf-token"]').content;
+const NAMA_KEGIATAN_TPL = @json($namaKegiatanTemplate);
+const TAHUN_DEFAULT     = @json($tahunDefault);
 const ROUTES = {
     store:   '{{ route("lomba-provinsi.store") }}',
     show:    '{{ route("lomba-provinsi.show", ":id") }}',
@@ -409,14 +439,24 @@ function toggleExpand(id){
     if(!isOpen) exp.style.display = '';
 }
 document.getElementById('f-provinsi').addEventListener('change', function(){
-    const kode = this.options[this.selectedIndex].getAttribute('data-kode') || '??';
+    const opt  = this.options[this.selectedIndex];
+    const kode = opt.getAttribute('data-kode') || '??';
+    const nama = opt.getAttribute('data-nama') || '';
     for(let i = 1; i <= 9; i++) document.getElementById('sk-kode-' + i).textContent = kode + i;
+    // Substitusi nama kegiatan
+    const namaKeg = NAMA_KEGIATAN_TPL
+        .replace(/\{\{tahun\}\}/g, TAHUN_DEFAULT)
+        .replace(/\{\{provinsi\}\}/g, nama);
+    document.getElementById('f-nama-kegiatan').value = nama ? namaKeg : '';
 });
 function openAdd(){
     editingId = null;
     document.getElementById('form-modal-title').textContent = 'Tambah Provinsi Lomba';
     document.getElementById('f-provinsi').value = '';
     document.getElementById('grp-provinsi').style.display = '';
+    document.getElementById('f-nama-kegiatan').value = '';
+    document.getElementById('f-tempat').value = '';
+    document.getElementById('f-tanggal').value = '';
     for(let i = 1; i <= 9; i++){
         document.getElementById('sk-kode-' + i).textContent = '??' + i;
         ['nama','telp','email','ket'].forEach(f => document.getElementById('sk-' + f + '-' + i).value = '');
@@ -436,6 +476,9 @@ async function openEdit(id){
         if(!json.success) throw new Error(json.message);
         const d = json.data; const kode = d.provinsi?.kode || '??';
         document.getElementById('f-tahun').value = d.tahun;
+        document.getElementById('f-nama-kegiatan').value = d.nama_kegiatan  || '';
+        document.getElementById('f-tempat').value         = d.tempat_kegiatan  || '';
+        document.getElementById('f-tanggal').value        = d.tanggal_kegiatan || '';
         d.sekolah.forEach((s, i) => {
             const n = i + 1;
             document.getElementById('sk-kode-' + n).textContent = s.kode_sekolah || (kode + n);
@@ -469,8 +512,14 @@ async function submitForm(){
     clearFormErrors();
     const btn = document.getElementById('btn-save-form'); btn.disabled = true;
     const sekolah = collectSekolah();
-    const provinsiId = document.getElementById('f-provinsi').value;
-    const body = editingId ? { sekolah } : { provinsi_id: provinsiId, sekolah };
+    const provinsiId  = document.getElementById('f-provinsi').value;
+    const namaKegiatan   = document.getElementById('f-nama-kegiatan').value.trim();
+    const tempatKegiatan = document.getElementById('f-tempat').value.trim();
+    const tanggalKegiatan = document.getElementById('f-tanggal').value;
+    const kegiatanFields = { nama_kegiatan: namaKegiatan || null, tempat_kegiatan: tempatKegiatan || null, tanggal_kegiatan: tanggalKegiatan || null };
+    const body = editingId
+        ? { ...kegiatanFields, sekolah }
+        : { provinsi_id: provinsiId, ...kegiatanFields, sekolah };
     const url = editingId ? ROUTES.update.replace(':id', editingId) : ROUTES.store;
     const method = editingId ? 'PUT' : 'POST';
     try {
@@ -552,6 +601,16 @@ function buildReviewPanel(json){
     const wcard=document.getElementById('prov-warning-card');
     if(json.sudah_terdaftar){ wcard.style.display='flex'; document.getElementById('prov-warning-sub').textContent='Data sekolah sudah ada. Pilih "Timpa" untuk mengganti.'; document.getElementById('action-selector').style.display='flex'; }
     else { wcard.style.display='none'; document.getElementById('action-selector').style.display='none'; }
+    // Tampilkan info tempat & tanggal kegiatan dari file
+    let kegiatanBox = document.getElementById('kegiatan-info-box');
+    if(!kegiatanBox){ kegiatanBox=document.createElement('div'); kegiatanBox.id='kegiatan-info-box'; document.getElementById('prov-warning-card').insertAdjacentElement('afterend', kegiatanBox); }
+    if(json.tempat_kegiatan || json.tanggal_kegiatan){
+        let html='<div style="display:flex;flex-wrap:wrap;gap:12px 24px;margin-bottom:10px;padding:8px 12px;background:var(--blue-50);border:1px solid var(--blue-100);border-radius:var(--radius);font-size:12px">';
+        if(json.tempat_kegiatan) html+=`<div><div style="color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.3px;font-size:10px">Tempat Kegiatan</div><div style="color:var(--text-1);font-weight:500;margin-top:2px">${esc(json.tempat_kegiatan)}</div></div>`;
+        if(json.tanggal_kegiatan) html+=`<div><div style="color:var(--text-3);font-weight:600;text-transform:uppercase;letter-spacing:.3px;font-size:10px">Tanggal Kegiatan</div><div style="color:var(--text-1);font-weight:500;margin-top:2px">${esc(json.tanggal_kegiatan)}</div></div>`;
+        html+='</div>';
+        kegiatanBox.innerHTML=html; kegiatanBox.style.display='block';
+    } else { kegiatanBox.style.display='none'; }
     const feBox=document.getElementById('file-errors-box');
     if(json.file_errors&&json.file_errors.length){ feBox.style.display='block'; feBox.innerHTML=json.file_errors.map(e=>`<div class="alert alert-error" style="margin-bottom:4px;display:block">${esc(e)}</div>`).join(''); }
     else feBox.style.display='none';
@@ -568,7 +627,14 @@ async function processImport(){
     const btn=document.getElementById('btn-process'); btn.disabled=true; btn.innerHTML='<div class="spinner" style="width:13px;height:13px;border-width:2px;border-top-color:#fff"></div> Menyimpan…';
     const action=document.querySelector('input[name="import-action"]:checked')?.value||'insert';
     try {
-        const res=await fetch(ROUTES.save,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},body:JSON.stringify({provinsi_id:importData.provinsi.id,action,sekolah:importData.sekolah})});
+        const payload={
+            provinsi_id: importData.provinsi.id,
+            action,
+            tempat_kegiatan:  importData.tempat_kegiatan  || null,
+            tanggal_kegiatan: importData.tanggal_kegiatan || null,
+            sekolah: importData.sekolah
+        };
+        const res=await fetch(ROUTES.save,{method:'POST',headers:{'Content-Type':'application/json','X-CSRF-TOKEN':CSRF,'Accept':'application/json'},body:JSON.stringify(payload)});
         const json=await res.json();
         if(json.success){ goStep(5); document.getElementById('success-sub').textContent=json.message; document.getElementById('success-detail').innerHTML=`<div class="success-stat"><div class="success-stat-num" style="color:var(--green-600)">9</div><div class="success-stat-lbl">Sekolah disimpan</div></div><div class="success-stat"><div class="success-stat-num" style="color:var(--blue-600)">${importData.provinsi.nama}</div><div class="success-stat-lbl">Provinsi</div></div>`; }
         else { document.getElementById('panel4-err').textContent=json.message||'Gagal menyimpan.'; document.getElementById('panel4-err').style.display='block'; btn.disabled=false; btn.innerHTML='<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 16 16"><path d="M13 4L6 11 3 8"/></svg> Simpan Data'; }

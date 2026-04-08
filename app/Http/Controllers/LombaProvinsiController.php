@@ -30,6 +30,7 @@ class LombaProvinsiController extends Controller
     {
         $tahunDefault = Setting::get('tahun_default', (string) now()->year);
         $namaKegiatan = Setting::get('nama_kegiatan', 'Lomba Cerdas Cermat MPR RI');
+        $namaKegiatanTemplate = Setting::get('nama_kegiatan_default', 'Lomba Cerdas Cermat MPR RI Tahun {{tahun}} Seleksi Provinsi, Provinsi {{provinsi}}');
         $tahunFilter  = $request->get('tahun', $tahunDefault);
 
         $query = LombaProvinsi::with(['provinsi', 'sekolah'])
@@ -59,14 +60,15 @@ class LombaProvinsiController extends Controller
             ->get();
 
         return view('lomba-provinsi.index', [
-            'lombas'           => $lombas,
-            'tahunDefault'     => $tahunDefault,
-            'namaKegiatan'     => $namaKegiatan,
-            'tahunFilter'      => $tahunFilter,
-            'tahunList'        => $tahunList,
-            'semuaProvinsi'    => $semuaProvinsi,
-            'tersediaProvinsi' => $tersediaProvinsi,
-            'total'            => $lombas->count(),
+            'lombas'               => $lombas,
+            'tahunDefault'         => $tahunDefault,
+            'namaKegiatan'         => $namaKegiatan,
+            'namaKegiatanTemplate' => $namaKegiatanTemplate,
+            'tahunFilter'          => $tahunFilter,
+            'tahunList'            => $tahunList,
+            'semuaProvinsi'        => $semuaProvinsi,
+            'tersediaProvinsi'     => $tersediaProvinsi,
+            'total'                => $lombas->count(),
         ]);
     }
 
@@ -80,6 +82,9 @@ class LombaProvinsiController extends Controller
         $request->validate([
             'provinsi_id'                        => ['required', 'exists:provinsis,id',
                 Rule::unique('lomba_provinsis')->where('tahun', $tahunDefault)],
+            'nama_kegiatan'                      => ['nullable', 'string', 'max:250'],
+            'tempat_kegiatan'                    => ['nullable', 'string', 'max:250'],
+            'tanggal_kegiatan'                   => ['nullable', 'date'],
             'sekolah'                            => ['required', 'array', 'size:' . self::JUMLAH_SEKOLAH],
             'sekolah.*.nama_sekolah'             => ['required', 'string', 'max:150', 'distinct'],
             'sekolah.*.nomor_telepon'            => ['nullable', 'string', 'regex:/^(\+62|0)[0-9]{7,14}$/'],
@@ -96,8 +101,11 @@ class LombaProvinsiController extends Controller
 
         DB::transaction(function () use ($request, $tahunDefault, $provinsi) {
             $lomba = LombaProvinsi::create([
-                'tahun'       => $tahunDefault,
-                'provinsi_id' => $provinsi->id,
+                'tahun'            => $tahunDefault,
+                'provinsi_id'      => $provinsi->id,
+                'nama_kegiatan'    => $request->nama_kegiatan ?? null,
+                'tempat_kegiatan'  => $request->tempat_kegiatan ?? null,
+                'tanggal_kegiatan' => $request->tanggal_kegiatan ?? null,
             ]);
 
             foreach ($request->sekolah as $i => $s) {
@@ -127,11 +135,14 @@ class LombaProvinsiController extends Controller
         return response()->json([
             'success' => true,
             'data'    => [
-                'id'          => $lombaProvinsi->id,
-                'tahun'       => $lombaProvinsi->tahun,
-                'provinsi_id' => $lombaProvinsi->provinsi_id,
-                'provinsi'    => $lombaProvinsi->provinsi,
-                'sekolah'     => $lombaProvinsi->sekolah,
+                'id'               => $lombaProvinsi->id,
+                'tahun'            => $lombaProvinsi->tahun,
+                'provinsi_id'      => $lombaProvinsi->provinsi_id,
+                'provinsi'         => $lombaProvinsi->provinsi,
+                'nama_kegiatan'    => $lombaProvinsi->nama_kegiatan,
+                'tempat_kegiatan'  => $lombaProvinsi->tempat_kegiatan,
+                'tanggal_kegiatan' => $lombaProvinsi->tanggal_kegiatan,
+                'sekolah'          => $lombaProvinsi->sekolah,
             ],
         ]);
     }
@@ -142,6 +153,9 @@ class LombaProvinsiController extends Controller
     public function update(Request $request, LombaProvinsi $lombaProvinsi): JsonResponse
     {
         $request->validate([
+            'nama_kegiatan'                      => ['nullable', 'string', 'max:250'],
+            'tempat_kegiatan'                    => ['nullable', 'string', 'max:250'],
+            'tanggal_kegiatan'                   => ['nullable', 'date'],
             'sekolah'                            => ['required', 'array', 'size:' . self::JUMLAH_SEKOLAH],
             'sekolah.*.id'                       => ['nullable', 'string'],
             'sekolah.*.nama_sekolah'             => ['required', 'string', 'max:150', 'distinct'],
@@ -157,6 +171,13 @@ class LombaProvinsiController extends Controller
         $provinsi = $lombaProvinsi->provinsi;
 
         DB::transaction(function () use ($request, $lombaProvinsi, $provinsi) {
+            // Update data kegiatan
+            $lombaProvinsi->update([
+                'nama_kegiatan'    => $request->nama_kegiatan ?? null,
+                'tempat_kegiatan'  => $request->tempat_kegiatan ?? null,
+                'tanggal_kegiatan' => $request->tanggal_kegiatan ?? null,
+            ]);
+
             // Hapus semua sekolah lama, insert ulang
             $lombaProvinsi->sekolah()->delete();
 
@@ -215,7 +236,7 @@ class LombaProvinsiController extends Controller
         ]);
         $sheet->getRowDimension(1)->setRowHeight(32);
 
-        // Info Provinsi (isi oleh pengguna)
+        // Info Provinsi (isi oleh pengguna) — baris 3
         $sheet->setCellValue('A3', 'KODE PROVINSI');
         $sheet->setCellValue('B3', '');  // diisi pengguna
         $sheet->getStyle('A3')->applyFromArray([
@@ -238,11 +259,52 @@ class LombaProvinsiController extends Controller
         ]);
         $sheet->getRowDimension(3)->setRowHeight(22);
 
-        // Catatan panduan (baris 5–7)
+        // Tempat kegiatan — baris 4
+        $sheet->setCellValue('A4', 'TEMPAT KEGIATAN');
+        $sheet->setCellValue('B4', '');  // diisi pengguna
+        $sheet->getStyle('A4')->applyFromArray([
+            'font'      => ['bold' => true, 'size' => 10, 'color' => ['rgb' => '0C447C']],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E6F1FB']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT, 'vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+        $sheet->getStyle('B4')->applyFromArray([
+            'font'      => ['size' => 11, 'color' => ['rgb' => '0C447C']],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'B5D4F4']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_LEFT],
+            'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_MEDIUM, 'color' => ['rgb' => '378ADD']]],
+        ]);
+        $sheet->mergeCells('B4:E4');
+        $sheet->setCellValue('C4', '');
+        $sheet->getRowDimension(4)->setRowHeight(22);
+
+        // Tanggal kegiatan — baris 5
+        $sheet->setCellValue('A5', 'TANGGAL KEGIATAN');
+        $sheet->setCellValue('B5', '');  // diisi pengguna, format yyyy-mm-dd
+        $sheet->getStyle('A5')->applyFromArray([
+            'font'      => ['bold' => true, 'size' => 10, 'color' => ['rgb' => '0C447C']],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'E6F1FB']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_RIGHT, 'vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+        $sheet->getStyle('B5')->applyFromArray([
+            'font'      => ['size' => 11, 'color' => ['rgb' => '0C447C']],
+            'fill'      => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'B5D4F4']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
+            'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_MEDIUM, 'color' => ['rgb' => '378ADD']]],
+        ]);
+        $sheet->getStyle('B5')->getNumberFormat()->setFormatCode('@');
+        $sheet->setCellValue('C5', '← Format: yyyy-mm-dd (contoh: 2025-03-15)');
+        $sheet->mergeCells('C5:E5');
+        $sheet->getStyle('C5')->applyFromArray([
+            'font'  => ['italic' => true, 'size' => 10, 'color' => ['rgb' => '888780']],
+            'fill'  => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F8F7F4']],
+        ]);
+        $sheet->getRowDimension(5)->setRowHeight(22);
+
+        // Catatan panduan (baris 7–9)
         $notes = [
-            5 => ['warn' => false, 'text' => '• Isi kode provinsi 2 digit di sel B3. Sistem akan mendeteksi provinsi secara otomatis.'],
-            6 => ['warn' => false, 'text' => '• Isi tepat 9 baris data sekolah mulai baris 10. Nama sekolah harus unik dalam satu provinsi.'],
-            7 => ['warn' => true,  'text' => '⚠  Jangan ubah baris header (baris 9). Data sekolah HARUS tepat 9 baris (tidak boleh lebih atau kurang).'],
+            7 => ['warn' => false, 'text' => '• Isi kode provinsi 2 digit di sel B3. Sistem akan mendeteksi provinsi secara otomatis.'],
+            8 => ['warn' => false, 'text' => '• Isi tepat 9 baris data sekolah mulai baris 12. Nama sekolah harus unik dalam satu provinsi.'],
+            9 => ['warn' => true,  'text' => '⚠  Jangan ubah baris header (baris 11). Data sekolah HARUS tepat 9 baris (tidak boleh lebih atau kurang).'],
         ];
         foreach ($notes as $row => $note) {
             $sheet->setCellValue("A{$row}", $note['text']);
@@ -254,11 +316,11 @@ class LombaProvinsiController extends Controller
             $sheet->getRowDimension($row)->setRowHeight(18);
         }
 
-        // Header kolom (baris 9)
+        // Header kolom (baris 11)
         $headers = ['No.', 'Nama Sekolah', 'Nomor Telepon', 'Email', 'Keterangan'];
         $widths  = [7, 45, 22, 35, 40];
         foreach ($headers as $col => $h) {
-            $cell = chr(65 + $col) . '9';
+            $cell = chr(65 + $col) . '11';
             $sheet->setCellValue($cell, $h);
             $sheet->getColumnDimension(chr(65 + $col))->setWidth($widths[$col]);
             $sheet->getStyle($cell)->applyFromArray([
@@ -268,11 +330,11 @@ class LombaProvinsiController extends Controller
                 'borders'   => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '378ADD']]],
             ]);
         }
-        $sheet->getRowDimension(9)->setRowHeight(22);
+        $sheet->getRowDimension(11)->setRowHeight(22);
 
-        // Baris data (10–18, tepat 9 sekolah)
+        // Baris data (12–20, tepat 9 sekolah)
         for ($i = 1; $i <= 9; $i++) {
-            $row = $i + 9;
+            $row = $i + 11;
             $sheet->setCellValue("A{$row}", $i);
             $sheet->setCellValue("B{$row}", "Nama Sekolah {$i}");
             $sheet->setCellValue("C{$row}", '0811-xxxx-xxxx');
@@ -287,7 +349,7 @@ class LombaProvinsiController extends Controller
             $sheet->getStyle("A{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
         }
 
-        $sheet->freezePane('A10');
+        $sheet->freezePane('A12');
 
         // ═══ Sheet 2: Referensi kode provinsi ═══
         $refSheet = $spreadsheet->createSheet();
@@ -373,6 +435,19 @@ class LombaProvinsiController extends Controller
         $kodeProvinsiRaw = trim((string) ($rows[2][1] ?? ''));
         $kodeProvinsi    = str_pad(preg_replace('/\D/', '', $kodeProvinsiRaw), 2, '0', STR_PAD_LEFT);
 
+        // ── Baca tempat kegiatan di baris 4 (index 3), kolom B (index 1) ──
+        $tempatKegiatan = trim((string) ($rows[3][1] ?? '')) ?: null;
+
+        // ── Baca tanggal kegiatan di baris 5 (index 4), kolom B (index 1) ──
+        $tanggalKegiatanRaw = trim((string) ($rows[4][1] ?? ''));
+        $tanggalKegiatan    = null;
+        if ($tanggalKegiatanRaw !== '') {
+            // Validasi format yyyy-mm-dd
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $tanggalKegiatanRaw)) {
+                $tanggalKegiatan = $tanggalKegiatanRaw;
+            }
+        }
+
         $provinsiValid   = false;
         $provinsiData    = null;
 
@@ -400,11 +475,11 @@ class LombaProvinsiController extends Controller
             $sudahTerdaftar = $lombaExisting !== null;
         }
 
-        // ── Cari baris header (baris 9, index 8, atau fallback ke baris 1) ──
+        // ── Cari baris header (baris 11, index 10, atau fallback ke baris 1) ──
         $headerRowIndex = null;
         $colNama = $colTelp = $colEmail = $colKet = false;
 
-        foreach ([8, 0] as $candidateIdx) {
+        foreach ([10, 0] as $candidateIdx) {
             if (!isset($rows[$candidateIdx])) continue;
             $candidate = array_map(fn($h) => mb_strtolower(trim((string) $h)), $rows[$candidateIdx]);
             // Cari kolom "nama" atau "nama sekolah"
@@ -505,19 +580,21 @@ class LombaProvinsiController extends Controller
         $invalidCount = collect($sekolahRows)->where('status', 'invalid')->count();
 
         return response()->json([
-            'success'        => true,
-            'kode_provinsi'  => $kodeProvinsiRaw,
-            'kode_normalized'=> $kodeProvinsi,
-            'provinsi_valid' => $provinsiValid,
-            'provinsi'       => $provinsiData,
-            'tahun'          => $tahunDefault,
-            'sudah_terdaftar'=> $sudahTerdaftar,
-            'lomba_id'       => $lombaExisting?->id,
-            'sekolah'        => $sekolahRows,
-            'valid_count'    => $validCount,
-            'invalid_count'  => $invalidCount,
-            'total'          => count($sekolahRows),
-            'file_errors'    => $errors,
+            'success'          => true,
+            'kode_provinsi'    => $kodeProvinsiRaw,
+            'kode_normalized'  => $kodeProvinsi,
+            'provinsi_valid'   => $provinsiValid,
+            'provinsi'         => $provinsiData,
+            'tahun'            => $tahunDefault,
+            'tempat_kegiatan'  => $tempatKegiatan,
+            'tanggal_kegiatan' => $tanggalKegiatan,
+            'sudah_terdaftar'  => $sudahTerdaftar,
+            'lomba_id'         => $lombaExisting?->id,
+            'sekolah'          => $sekolahRows,
+            'valid_count'      => $validCount,
+            'invalid_count'    => $invalidCount,
+            'total'            => count($sekolahRows),
+            'file_errors'      => $errors,
         ]);
     }
 
@@ -529,6 +606,8 @@ class LombaProvinsiController extends Controller
         $request->validate([
             'provinsi_id'                      => ['required', 'exists:provinsis,id'],
             'action'                           => ['required', 'in:insert,replace'],
+            'tempat_kegiatan'                  => ['nullable', 'string', 'max:250'],
+            'tanggal_kegiatan'                 => ['nullable', 'date_format:Y-m-d'],
             'sekolah'                          => ['required', 'array', 'size:' . self::JUMLAH_SEKOLAH],
             'sekolah.*.kode_sekolah'           => ['required', 'string'],
             'sekolah.*.nama_sekolah'           => ['required', 'string', 'max:150'],
@@ -545,6 +624,12 @@ class LombaProvinsiController extends Controller
             $lomba = LombaProvinsi::firstOrCreate(
                 ['tahun' => $tahunDefault, 'provinsi_id' => $provinsi->id],
             );
+
+            // Update tempat & tanggal kegiatan dari file import
+            $lomba->update([
+                'tempat_kegiatan'  => $request->tempat_kegiatan ?? null,
+                'tanggal_kegiatan' => $request->tanggal_kegiatan ?? null,
+            ]);
 
             if ($action === 'replace') {
                 $lomba->sekolah()->delete();
